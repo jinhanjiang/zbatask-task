@@ -48,6 +48,11 @@ class WebsocketServer
             ProcessException::error("Couldn't create listener"); exit;
         }
         $this->listener->setErrorCallback(array($this, "acceptErrorCallback"));
+        if(is_callable(__NAMESPACE__.'\WebsocketEvent::onServerStart')) {
+            try{
+                $content = call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onServerStart', array($this));
+            } catch(\Exception $ex) {} 
+        }
     }
 
     public function start() {
@@ -149,7 +154,9 @@ class WebsocketServer
         if($encode) {
             $message = $this->encode($message);
         }
-        $this->connections[$id]['bev']->write($message);
+        if(isset($this->connections[$id])) {
+            $this->connections[$id]['bev']->write($message);
+        }
     }
 
     private function handshake($id, $buffer)
