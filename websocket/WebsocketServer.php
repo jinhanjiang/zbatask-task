@@ -167,19 +167,25 @@ class WebsocketServer
             } catch(\Exception $ex) {} 
         }
         $buffer = $content ? $content : $buffer;
-        preg_match("/Sec-WebSocket-Key: (.*)\r\n/", $buffer, $match); 
-        $key = isset($match[1]) ? $match[1] : null;
-
-        $upgrade = "HTTP/1.1 101 Switching Protocol\r\n" .
-            "Upgrade: websocket\r\n" .
-            "Sec-WebSocket-Version: 13\r\n" .
-            "Connection: Upgrade\r\n" .
-            "Sec-WebSocket-Accept: " . base64_encode(sha1($key . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true)) . "\r\n\r\n";
-        $this->send($id, $upgrade, false);
-        $this->connections[$id]['handshake'] = true;
-        if(is_callable(__NAMESPACE__.'\WebsocketEvent::onConnection')) {
+        preg_match("/Sec-WebSocket-Key: (.*)\r\n/", $buffer, $match);
+        if(isset($match[1]))
+        {
+            $upgrade = "HTTP/1.1 101 Switching Protocol\r\n" .
+                "Upgrade: websocket\r\n" .
+                "Sec-WebSocket-Version: 13\r\n" .
+                "Connection: Upgrade\r\n" .
+                "Sec-WebSocket-Accept: " . base64_encode(sha1($match[1] . '258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true)) . "\r\n\r\n";
+            $this->send($id, $upgrade, false);
+            $this->connections[$id]['handshake'] = true;
+            if(is_callable(__NAMESPACE__.'\WebsocketEvent::onConnection')) {
+                try{
+                    call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onConnection', array($this, $id));
+                } catch(\Exception $ex) {} 
+            }
+        }
+        else if(is_callable(__NAMESPACE__.'\WebsocketEvent::onMessage')) {
             try{
-                call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onConnection', array($this, $id));
+                call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onMessage', array($this, $id, $buffer));
             } catch(\Exception $ex) {} 
         }
     }

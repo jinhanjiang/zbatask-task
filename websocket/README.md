@@ -114,3 +114,16 @@ class WebsocketEvent
 </body>
 </html>
 ```
+
+### 六 客户端发消息
+
+使用PHP客户端
+```
+$fd = stream_socket_client('tcp://0.0.0.0:1223', $errno, $errstr, 30);
+if($fd) {
+    fwrite($fd, '这是一条测试消息'."\r\n");
+    fclose($fd);
+}
+```
+
+`注意：消息以\r\n结尾`
