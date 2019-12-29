@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <script type="text/javascript" src="./js/jquery.min.js" ></script>
+  <script type="text/javascript" src="./js/rule.js" ></script>
+  <style type="text/css">
+  #background{position: relative;margin: 20px auto;}
+  #messagebox{width: 320px;height: 80px;}
+  .chessman{border-radius: 15px;width: 30px;height: 30px;margin: 0 auto;}
+  .white{background-color:white;}
+  .black{background-color: black;}
+  .grid,.b_grid{float: left;}
+  .message{width: 320px;height: 100px;margin: 0 auto;}
+</style>
+</head>
+<body>
+  <div id="background">
+    <!--<div id="back_grid"></div>-->
+    <div id="chess"></div>
+  </div>
+  <div class="message">
+    <textarea id="messagebox" disabled="disabled" readonly="readonly"></textarea>
+    <div><input id="message"/> <button onclick="WuZiQi.sendMessage()">发送</button></div>
+  </div>
+</body>
+</html>
