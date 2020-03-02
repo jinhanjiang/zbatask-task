@@ -119,8 +119,10 @@ class WebsocketEvent
 
 使用PHP客户端
 ```
-$fd = stream_socket_client('tcp://0.0.0.0:1223', $errno, $errstr, 30);
+$context = stream_context_create();
+$fd = stream_socket_client('tcp://0.0.0.0:1223', $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
 if($fd) {
+    stream_set_timeout($fp, 5);
     fwrite($fd, '这是一条测试消息'."\r\n");
     fclose($fd);
 }
