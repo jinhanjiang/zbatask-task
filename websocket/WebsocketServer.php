@@ -135,7 +135,7 @@ class WebsocketServer
 
     public function send($id, $message, $messageType='text') {
         $message = $this->frame($id, $message, $messageType);
-        if(isset($this->connections[$id])) {
+        if($message && isset($this->connections[$id])) {
             $this->connections[$id]['bev']->write($message);
         }
     }
@@ -195,7 +195,7 @@ class WebsocketServer
         while($framePos < $length) {
             $headers = $this->getPacketHeaders($packet);
             $hadersSize = $this->calcOffset($headers);
-            $frameSize = $headers['length'] + $hadersSize;
+            $frameSize = (int)$headers['length'] + $hadersSize;
 
             $frame = substr($fullPacket, $framePos, $frameSize);
             if(($message = $this->deframe($id, $frame)) !== false)
@@ -234,6 +234,7 @@ class WebsocketServer
      */
     private function getPacketHeaders($message) 
     {
+        if("" == $message) return "";
         $header = array(
             'fin'     => $message[0] & chr(128),
             'rsv1'    => $message[0] & chr(64),
@@ -349,6 +350,7 @@ class WebsocketServer
     public function deframe($id, $message) 
     {
         $headers = $this->getPacketHeaders($message);
+        if(! $headers) return false;
         $pong = $close = false;
         switch($headers['opcode']) {
             case 0:
