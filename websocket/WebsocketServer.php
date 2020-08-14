@@ -41,7 +41,7 @@ class WebsocketServer
             // for example: 0.0.0.0:1223
             $host = $config['host'];
         } else if (isset($config['port']) && preg_match('/^\d{1,5}$/', $config['port'])) {
-            $host = "0.0.0.0:{$config['host']}";
+            $host = "0.0.0.0:{$config['port']}";
         } else {
             $host = "0.0.0.0:1223";
         }
