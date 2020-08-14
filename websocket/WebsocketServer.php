@@ -28,7 +28,7 @@ class WebsocketServer
 
     public $connections = [];
 
-    public function __construct($host = "0.0.0.0:1223") {
+    public function __construct($config=array()) {
         if(! extension_loaded('event')) {
             throw new \Exception('Event extension needs to be install to run the current service');
         }
@@ -36,6 +36,20 @@ class WebsocketServer
         if(! $this->base) {
             ProcessException::error("Couldn't open event base"); exit;
         }
+        // host setting
+        if(isset($config['host']) && preg_match('/^\d{1,3}(\.\d{1,3}){3}:\d{1,5}$/', $config['host'])) {
+            // for example: 0.0.0.0:1223
+            $host = $config['host'];
+        } else if (isset($config['port']) && preg_match('/^\d{1,5}$/', $config['port'])) {
+            $host = "0.0.0.0:{$config['host']}";
+        } else {
+            $host = "0.0.0.0:1223";
+        }
+        // maxRead
+        $this->maxRead = (isset($config['maxRead']) 
+            && preg_match('/^\d+$/', $config['maxRead']) 
+            && $config['maxRead'] > 0) ? $config['maxRead'] : 4096;
+        // Initial link
         $this->listener = new EventListener(
             $this->base, 
             [$this, "acceptConnCallback"],
@@ -45,13 +59,17 @@ class WebsocketServer
             $host
         );
         if(! $this->listener) {
-            ProcessException::error("Couldn't create listener"); exit;
-        }
-        $this->listener->setErrorCallback(array($this, "acceptErrorCallback"));
-        if(is_callable(__NAMESPACE__.'\WebsocketEvent::onServerStart')) {
-            try{
-                $content = call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onServerStart', array($this));
-            } catch(\Exception $ex) {} 
+            ProcessException::error("Couldn't create listener");
+        } 
+        else {
+            $this->listener->setErrorCallback(array($this, "acceptErrorCallback"));
+            if(is_callable(__NAMESPACE__.'\WebsocketEvent::onServerStart')) {
+                try{
+                    $content = call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onServerStart', array($this));
+                } catch(\Exception $ex) {
+                    ProcessException::info($ex->getMessage());
+                } 
+            }
         }
     }
 
@@ -63,7 +81,9 @@ class WebsocketServer
         if(is_callable(__NAMESPACE__.'\WebsocketEvent::onClose')) {
             try{
                 call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onClose', array($this, $id));
-            } catch(\Exception $ex) {} 
+            } catch(\Exception $ex) {
+                ProcessException::info($ex->getMessage());
+            } 
         }
         if(isset($this->connections[$id])) {
             $this->connections[$id]['bev']->disable(Event::READ | Event::WRITE);
@@ -122,7 +142,7 @@ class WebsocketServer
             if(! $this->connections[$id]['handshake']) {
                 $this->handshake($id, $buffRead);
             } 
-            else {
+            else if($buffRead) {
                 $this->splitPacket($id, $buffRead);
             }
         }
@@ -154,7 +174,9 @@ class WebsocketServer
         if(is_callable(__NAMESPACE__.'\WebsocketEvent::onHandshake')) {
             try{
                 $content = call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onHandshake', array($this, $id, $buffer));
-            } catch(\Exception $ex) {} 
+            } catch(\Exception $ex) {
+                ProcessException::info($ex->getMessage());
+            } 
         }
         $buffer = $content ? $content : $buffer;
         preg_match("/Sec-WebSocket-Key: (.*)\r\n/", $buffer, $match);
@@ -170,13 +192,17 @@ class WebsocketServer
             if(is_callable(__NAMESPACE__.'\WebsocketEvent::onConnection')) {
                 try{
                     call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onConnection', array($this, $id));
-                } catch(\Exception $ex) {} 
+                } catch(\Exception $ex) {
+                    ProcessException::info($ex->getMessage());
+                } 
             }
         }
         else if(is_callable(__NAMESPACE__.'\WebsocketEvent::onMessage')) {
             try{
                 call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onMessage', array($this, $id, $buffer));
-            } catch(\Exception $ex) {} 
+            } catch(\Exception $ex) {
+                ProcessException::info($ex->getMessage());
+            } 
         }
     }
 
@@ -203,7 +229,9 @@ class WebsocketServer
                 if(is_callable(__NAMESPACE__.'\WebsocketEvent::onMessage')) {
                     try{
                         call_user_func_array(__NAMESPACE__.'\WebsocketEvent::onMessage', array($this, $id, $message));
-                    } catch(\Exception $ex) {} 
+                    } catch(\Exception $ex) {
+                        ProcessException::info($ex->getMessage());
+                    } 
                 }
             }
             $framePos += $frameSize;
@@ -234,7 +262,7 @@ class WebsocketServer
      */
     private function getPacketHeaders($message) 
     {
-        if("" == $message) return "";
+        if("" == $message) return array();
         $header = array(
             'fin'     => $message[0] & chr(128),
             'rsv1'    => $message[0] & chr(64),

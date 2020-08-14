@@ -28,13 +28,20 @@ class WebsocketEventTask extends Task
 		parent::__construct();
 	}
 
+	/**
+	 * $this->envConfig come from .env , You can changed it 
+	 *
+	 * [WebsocketEventTask]
+	 * host=0.0.0.0:1223
+	 * maxRead=4096
+	 */
 	public function onWorkerStart() 
 	{
 		return function(Process $worker) 
 		{
 			if(1 == $worker->id) {
-				$port = isset($this->envConfig['port']) ? $this->envConfig['port'] : 1223;
-				$this->ws = new WebsocketServer("0.0.0.0:{$port}");
+				$config = isset($this->envConfig) && is_array($this->envConfig) ? $this->envConfig : array();
+				$this->ws = new WebsocketServer($config);
 			}
 		};
 	}
