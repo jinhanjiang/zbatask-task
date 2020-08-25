@@ -86,8 +86,10 @@ class WebsocketServer
             } 
         }
         if(isset($this->connections[$id])) {
-            $this->connections[$id]['bev']->disable(Event::READ | Event::WRITE);
-            $this->connections[$id]['bev']->free();
+            if($this->connections[$id]['bev']) {
+                $this->connections[$id]['bev']->disable(Event::READ | Event::WRITE);
+                $this->connections[$id]['bev']->free();
+            }
             unset($this->connections[$id]);
         }
     }
