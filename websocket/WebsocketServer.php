@@ -157,7 +157,7 @@ class WebsocketServer
 
     public function send($id, $message, $messageType='text') {
         $message = $this->frame($id, $message, $messageType);
-        if($message && isset($this->connections[$id])) {
+        if($message && isset($this->connections[$id]) && $this->connections[$id]['bev']) {
             $this->connections[$id]['bev']->write($message);
         }
     }

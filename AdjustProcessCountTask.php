@@ -46,32 +46,19 @@ class AdjustProcessCountTask extends Task
             if($this->nextSleepTime == 0) $this->nextSleepTime = $delayTime;
             if($this->nextSleepTime < $nowTime)
             {
-                $this->nextSleepTime = $delayTime;
-
-                
-                // 假哪根据 队列 长度来调整启动 进程数
+                // 假设根据 队列 长度来调整执行 进程数
                 // 例如: 队列长度大于100 启动2个进程， 小于100启动1个进程
                 $nowCount = 2;
 
-                $processInfos = [];
-                if(! $this->hasSetProceess) {
-                    $processInfos[] = ['name'=>'DefaultTask', 'count'=>$nowCount]; $this->hasSetProceess = true;
-                }
-                if(count($processInfos) > 0) 
-                {
-                    // 获取主进程编号
-                    $masterPid = is_file(ProcessPool::getConfigFile('pid')) ? file_get_contents(ProcessPool::getConfigFile('pid')) : 0 ;
+                $worker->pipeWrite(json_encode(
+                    array(
+                        'action'=>'setProcessCount',
+                        'taskName'=>'DefaultTask',
+                        'count'=>$nowCount,
+                    )
+                ), $worker->masterProcessPipeFile);
 
-                    file_put_contents(ProcessPool::getConfigFile('communication'), 
-                        json_encode(
-                            [
-                                'command'=>'setProcessCount', 
-                                'processInfos'=>$processInfos
-                            ]
-                        )
-                    );
-                    $masterPid && posix_kill($masterPid, SIGUSR1);
-                }
+                $this->nextSleepTime = strtotime('+5 minute');
             }
         };
     }
