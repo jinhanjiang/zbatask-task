@@ -5,7 +5,7 @@ use Zba\Process;
 use Zba\Task;
 use Zba\Timer;
 
-// 当前配置可加到config.php中
+// 以下常量配置可加到config.php中
 // Redis
 define('REDIS_HOST', '127.0.0.1');
 define('REDIS_PASS', '');
@@ -16,9 +16,8 @@ define('DB_PASS', 'root');
 define('DB_NAME', 'test');
 
 /**
- * 
+ * 动态调整进程样例
  */
-
 class AdjustProcTask extends Task
 {
 	public function __construct() {
@@ -152,7 +151,7 @@ SQL;
 					{
 						$db = getDb(DB_HOST, DB_USER, DB_PASS, DB_NAME); 
 
-						$objs = $db->query("SELECT * from `Db_Example` WHERE `id`={$qdata['id']}");
+						$objs = $db->query("SELECT * FROM `Db_Example` WHERE `id`={$qdata['id']}");
 						if(isset($objs[0]) && $objs[0]->createTime > date('Y-m-d H:i:s')) 
 						{
 							// 处理业务逻辑
