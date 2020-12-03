@@ -117,6 +117,7 @@ function getDb($dbHost, $dbUser, $dbPass, $dbName, $port=3306)
             		return new class($dbHost, $dbUser, $dbPass, $dbName, $port) {
             			private static $mysqli = null;
             			private static $lastSQL = '';
+            			private static $retry = 0;
             			function __construct($dbHost, $dbUser, $dbPass, $dbName, $port) {
             				self::$mysqli = new \mysqli($dbHost, $dbUser, $dbPass, $dbName, $port);
             			}
@@ -124,16 +125,26 @@ function getDb($dbHost, $dbUser, $dbPass, $dbName, $port=3306)
             				$result = NULL;
             				$sql = preg_replace(array("/\n/", "/\s+/"), " ", trim($sql));
             				self::$lastSQL = $sql;
-            				if($stmt = self::$mysqli->query($sql)){
-								if(preg_match('/^INSERT/i', $sql)) $result = self::$mysqli->insert_id;
-								else if(preg_match('/^(UPDATE|DELETE)/i', $sql)) $result = $stmt->num_rows;
-								else if(preg_match('/^(SELECT|CALL|EXPLAIN|SHOW|PRAGMA)/i', $sql)) {
-									$result = (array)$result;
-									while($obj = $stmt->fetch_object()) {
-										$result[] = $obj;
+            				try{
+            					$stmt = self::$mysqli->query($sql);
+	            				if(false !== $stmt) {
+									if(preg_match('/^INSERT/i', $sql)) $result = self::$mysqli->insert_id;
+									else if(preg_match('/^(UPDATE|DELETE)/i', $sql)) $result = $stmt->num_rows;
+									else if(preg_match('/^(SELECT|CALL|EXPLAIN|SHOW|PRAGMA)/i', $sql)) {
+										$result = (array)$result;
+										while($obj = $stmt->fetch_object()) {
+											$result[] = $obj;
+										}
 									}
+									//$stmt->close(); //please do not set this call, it's will affect result return
 								}
-								//$stmt->close(); //please do not set this call, it's will affect result return
+								self::$retry = 0;
+							} catch(Exception $ex) {
+								if(self::$retry < 10 
+									&& preg_match('/MySQL server has gone away/i', $ex->getMessage())) {
+									self::$retry ++; usleep(10000);
+                					return self::$query($sql);
+                				}
 							}
 							return $result;
             			}
